@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from urllib.parse import quote_plus
-
 from sqlalchemy import create_engine, text
+from sqlalchemy.engine import URL
 
 from app.models.schemas import SqlServerConnectionInfo, SqlServerRelatedTableResult
 from app.utils.config import settings
@@ -14,34 +13,38 @@ logger = get_logger(__name__)
 
 class SqlServerService:
     def _engine(self):
-        return create_engine(self._build_connection_string(), future=True, pool_pre_ping=True)
+        return create_engine(self._build_connection_url(), future=True, pool_pre_ping=True)
 
-    def _build_connection_string(self) -> str:
+    def _build_connection_url(self) -> URL:
+        query_params = {
+            "driver": settings.sqlserver_driver,
+            "TrustServerCertificate": "yes",
+        }
         if settings.sqlserver_trusted_connection:
-            params = (
-                f"DRIVER={{{settings.sqlserver_driver}}};"
-                f"SERVER={settings.sqlserver_host},{settings.sqlserver_port};"
-                f"DATABASE={settings.sqlserver_database};"
-                "Trusted_Connection=yes;"
-                "TrustServerCertificate=yes;"
+            query_params["trusted_connection"] = "yes"
+            return URL.create(
+                "mssql+pyodbc",
+                host=settings.sqlserver_host,
+                port=settings.sqlserver_port,
+                database=settings.sqlserver_database,
+                query=query_params,
             )
-        else:
-            params = (
-                f"DRIVER={{{settings.sqlserver_driver}}};"
-                f"SERVER={settings.sqlserver_host},{settings.sqlserver_port};"
-                f"DATABASE={settings.sqlserver_database};"
-                f"UID={settings.sqlserver_username};"
-                f"PWD={settings.sqlserver_password};"
-                "TrustServerCertificate=yes;"
-            )
-        return f"mssql+pyodbc:///?odbc_connect={quote_plus(params)}"
+        return URL.create(
+            "mssql+pyodbc",
+            username=settings.sqlserver_username or None,
+            password=settings.sqlserver_password or None,
+            host=settings.sqlserver_host,
+            port=settings.sqlserver_port,
+            database=settings.sqlserver_database,
+            query=query_params,
+        )
 
     def connection_info(self) -> SqlServerConnectionInfo:
         return SqlServerConnectionInfo(
             use_trusted_connection=settings.sqlserver_trusted_connection,
             database=settings.sqlserver_database,
             host=settings.sqlserver_host,
-            port=settings.sqlserver_port,
+            port=settings.sqlserver_port or 0,
         )
 
     def execute_select(self, query: str) -> list[dict]:
