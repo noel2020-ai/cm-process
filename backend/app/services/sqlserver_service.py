@@ -3,7 +3,7 @@ from __future__ import annotations
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
 
-from app.models.schemas import SqlServerConnectionInfo, SqlServerRelatedTableResult
+from app.models.schemas import SqlServerConnectionInfo, SqlServerRelatedSearchRequest, SqlServerRelatedTableResult
 from app.utils.config import settings
 from app.utils.logging import get_logger
 from app.utils.validators import validate_select_query, validate_sql_identifier
@@ -25,7 +25,6 @@ class SqlServerService:
             return URL.create(
                 "mssql+pyodbc",
                 host=settings.sqlserver_host,
-                port=settings.sqlserver_port,
                 database=settings.sqlserver_database,
                 query=query_params,
             )
@@ -34,7 +33,6 @@ class SqlServerService:
             username=settings.sqlserver_username or None,
             password=settings.sqlserver_password or None,
             host=settings.sqlserver_host,
-            port=settings.sqlserver_port,
             database=settings.sqlserver_database,
             query=query_params,
         )
@@ -44,7 +42,6 @@ class SqlServerService:
             use_trusted_connection=settings.sqlserver_trusted_connection,
             database=settings.sqlserver_database,
             host=settings.sqlserver_host,
-            port=settings.sqlserver_port or 0,
         )
 
     def execute_select(self, query: str) -> list[dict]:
@@ -77,6 +74,47 @@ class SqlServerService:
                     f"SELECT TOP {int(limit)} * FROM [{schema_name}].[{table_name}] WHERE [{master_key}] = :master_id"
                 )
                 rows = [dict(row._mapping) for row in connection.execute(query, {"master_id": master_id})]
+                results.append(
+                    SqlServerRelatedTableResult(
+                        table_name=f"{schema_name}.{table_name}",
+                        rows=rows,
+                    )
+                )
+        return results
+
+    def search_related_records(self, request: SqlServerRelatedSearchRequest) -> list[SqlServerRelatedTableResult]:
+        results: list[SqlServerRelatedTableResult] = []
+        filters: list[str] = []
+        parameters: dict[str, str] = {}
+
+        if request.name:
+            name_key = validate_sql_identifier(settings.sqlserver_name_column)
+            filters.append(f"[{name_key}] LIKE :name")
+            parameters["name"] = f"%{request.name}%"
+        if request.address:
+            address_key = validate_sql_identifier(settings.sqlserver_address_column)
+            filters.append(f"[{address_key}] LIKE :address")
+            parameters["address"] = f"%{request.address}%"
+        if request.parent_id:
+            parent_key = validate_sql_identifier(settings.sqlserver_parent_id_column)
+            filters.append(f"[{parent_key}] = :parent_id")
+            parameters["parent_id"] = request.parent_id
+
+        if not filters:
+            raise ValueError("At least one search criterion is required")
+
+        where_clause = " OR ".join(filters)
+        with self._engine().connect() as connection:
+            for table_ref in settings.sqlserver_related_tables[:3]:
+                parts = table_ref.split(".", 1)
+                if len(parts) != 2:
+                    raise ValueError(f"Invalid related table configuration: {table_ref}")
+                schema_name = validate_sql_identifier(parts[0])
+                table_name = validate_sql_identifier(parts[1])
+                query = text(
+                    f"SELECT TOP {int(request.limit)} * FROM [{schema_name}].[{table_name}] WHERE {where_clause}"
+                )
+                rows = [dict(row._mapping) for row in connection.execute(query, parameters)]
                 results.append(
                     SqlServerRelatedTableResult(
                         table_name=f"{schema_name}.{table_name}",
