@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { ApiResponse, SqlServerConnectionInfo, SqlServerRelatedTable } from "../types";
+import type { ApiResponse, SqlServerConnectionInfo, SqlServerRelatedSearchRequest, SqlServerRelatedTable } from "../types";
 
 export const getSqlServerConnection = async () => {
   const response = await apiClient.get<ApiResponse<SqlServerConnectionInfo>>("/sqlserver/connection");
@@ -23,5 +23,10 @@ export const readSqlServerObject = async (payload: {
 
 export const getRelatedSqlServerRows = async (masterId: string) => {
   const response = await apiClient.get<ApiResponse<SqlServerRelatedTable[]>>(`/sqlserver/related/${encodeURIComponent(masterId)}`);
+  return response.data.data;
+};
+
+export const searchRelatedSqlServerRows = async (payload: SqlServerRelatedSearchRequest) => {
+  const response = await apiClient.post<ApiResponse<SqlServerRelatedTable[]>>("/sqlserver/related-search", payload);
   return response.data.data;
 };
