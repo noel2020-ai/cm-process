@@ -1,0 +1,10 @@
+MasterId,CustomerCode,CustomerName,Segment,Region,Country,Industry,AnnualRevenue,AccountStatus,PrimaryManager,LastReviewDate,OnboardingChannel
+1001,CUST-001,North Ridge Supply,Enterprise,North America,United States,Industrial Services,1250000,Active,A. Cruz,2026-05-10,Direct
+1002,CUST-002,Green Summit Retail,Mid Market,Asia Pacific,Philippines,Retail,845000,Active,M. Reyes,2026-05-18,Partner
+1003,CUST-003,Harborline Foods,Enterprise,Europe,Germany,Food Processing,2310000,Review Pending,R. Santos,2026-04-29,Direct
+1004,CUST-004,Solstice Warehousing,SMB,North America,Canada,Logistics,420000,Active,J. Mendoza,2026-06-02,Referral
+1005,CUST-005,Everfield Components,Enterprise,Asia Pacific,Singapore,Manufacturing,3185000,At Risk,L. Torres,2026-05-26,Direct
+1006,CUST-006,Blue Horizon Clinics,Mid Market,Middle East,UAE,Healthcare,990000,Active,C. Navarro,2026-05-30,Partner
+1007,CUST-007,Cedar Point Energy,Enterprise,North America,United States,Energy Services,4120000,Escalated,S. Flores,2026-06-11,Direct
+1008,CUST-008,Urban Crest Projects,SMB,Asia Pacific,Malaysia,Construction,510000,Inactive,D. Ramos,2026-03-20,Referral
+

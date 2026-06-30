@@ -1,0 +1,15 @@
+app_name: Operations Data Dashboard
+api_v1_prefix: /api/v1
+frontend_origin: http://localhost:5173
+cors_origins:
+  - http://localhost:5173
+shared_folder_path: C:/shared/data
+postgres_schema: public
+sqlserver_driver: ODBC Driver 18 for SQL Server
+sqlserver_trusted_connection: true
+sqlserver_master_id_column: MasterId
+sqlserver_related_tables:
+  - dbo.related_table_one
+  - dbo.related_table_two
+  - dbo.related_table_three
+log_level: INFO
