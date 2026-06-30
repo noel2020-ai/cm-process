@@ -26,6 +26,8 @@ class FilePreview(BaseModel):
     inferred_types: dict[str, str]
     rows: list[dict[str, Any]]
     row_count: int
+    offset: int
+    limit: int
     validation_errors: list[str]
 
 
@@ -69,7 +71,6 @@ class SqlServerConnectionInfo(BaseModel):
     use_trusted_connection: bool
     database: str
     host: str
-    port: int
 
 
 class SqlServerQueryRequest(BaseModel):
@@ -86,6 +87,21 @@ class SqlServerObjectRequest(BaseModel):
 class SqlServerRelatedTableResult(BaseModel):
     table_name: str
     rows: list[dict[str, Any]]
+
+
+class SqlServerRelatedSearchRequest(BaseModel):
+    name: str | None = None
+    address: str | None = None
+    parent_id: str | None = None
+    limit: int = 100
+
+    def normalized_criteria(self) -> dict[str, str]:
+        values = {
+            "name": (self.name or "").strip(),
+            "address": (self.address or "").strip(),
+            "parent_id": (self.parent_id or "").strip(),
+        }
+        return {key: value for key, value in values.items() if value}
 
 
 class ResearchRequest(BaseModel):
