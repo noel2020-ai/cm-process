@@ -60,16 +60,18 @@ class SqlServerService:
         )
         return self.execute_select(safe_query)
 
+    def _parse_table_ref(self, table_ref: str) -> tuple[str, str]:
+        parts = table_ref.split(".", 1)
+        if len(parts) != 2:
+            raise ValueError(f"Invalid related table configuration: {table_ref}")
+        return validate_sql_identifier(parts[0]), validate_sql_identifier(parts[1])
+
     def get_related_by_master_id(self, master_id: str, limit: int = 100) -> list[SqlServerRelatedTableResult]:
         master_key = validate_sql_identifier(settings.sqlserver_master_id_column)
         results: list[SqlServerRelatedTableResult] = []
         with self._engine().connect() as connection:
             for table_ref in settings.sqlserver_related_tables[:3]:
-                parts = table_ref.split(".", 1)
-                if len(parts) != 2:
-                    raise ValueError(f"Invalid related table configuration: {table_ref}")
-                schema_name = validate_sql_identifier(parts[0])
-                table_name = validate_sql_identifier(parts[1])
+                schema_name, table_name = self._parse_table_ref(table_ref)
                 query = text(
                     f"SELECT TOP {int(limit)} * FROM [{schema_name}].[{table_name}] WHERE [{master_key}] = :master_id"
                 )
@@ -86,31 +88,27 @@ class SqlServerService:
         results: list[SqlServerRelatedTableResult] = []
         filters: list[str] = []
         parameters: dict[str, str] = {}
+        criteria = request.normalized_criteria()
 
-        if request.name:
+        if "name" in criteria:
             name_key = validate_sql_identifier(settings.sqlserver_name_column)
             filters.append(f"[{name_key}] LIKE :name")
-            parameters["name"] = f"%{request.name}%"
-        if request.address:
+            parameters["name"] = f"%{criteria['name']}%"
+        if "address" in criteria:
             address_key = validate_sql_identifier(settings.sqlserver_address_column)
             filters.append(f"[{address_key}] LIKE :address")
-            parameters["address"] = f"%{request.address}%"
-        if request.parent_id:
+            parameters["address"] = f"%{criteria['address']}%"
+        if "parent_id" in criteria:
             parent_key = validate_sql_identifier(settings.sqlserver_parent_id_column)
             filters.append(f"[{parent_key}] = :parent_id")
-            parameters["parent_id"] = request.parent_id
+            parameters["parent_id"] = criteria["parent_id"]
 
         if not filters:
             raise ValueError("At least one search criterion is required")
-
         where_clause = " OR ".join(filters)
         with self._engine().connect() as connection:
             for table_ref in settings.sqlserver_related_tables[:3]:
-                parts = table_ref.split(".", 1)
-                if len(parts) != 2:
-                    raise ValueError(f"Invalid related table configuration: {table_ref}")
-                schema_name = validate_sql_identifier(parts[0])
-                table_name = validate_sql_identifier(parts[1])
+                schema_name, table_name = self._parse_table_ref(table_ref)
                 query = text(
                     f"SELECT TOP {int(request.limit)} * FROM [{schema_name}].[{table_name}] WHERE {where_clause}"
                 )
