@@ -88,8 +88,17 @@ export const demoPreview: FilePreview = {
   },
   rows: masterRows,
   row_count: masterRows.length,
+  offset: 0,
+  limit: masterRows.length,
   validation_errors: [],
 };
+
+export const getDemoPreviewPage = (offset: number, limit: number): FilePreview => ({
+  ...demoPreview,
+  rows: masterRows.slice(offset, offset + limit),
+  offset,
+  limit,
+});
 
 export const demoLogs: LoadLog[] = [
   {
