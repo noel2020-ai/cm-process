@@ -26,6 +26,8 @@ const findValueByAliases = (row: Record<string, unknown>, aliases: string[]): st
 };
 
 const buildRelatedSearchPayload = (row: Record<string, unknown>): SqlServerRelatedSearchRequest => ({
+  master_id: findValueByAliases(row, ["MasterId", "Master_ID", "MasterID"]) ?? undefined,
+  company: findValueByAliases(row, ["CustomerName", "Company", "CompanyName", "Name"]) ?? undefined,
   name: findValueByAliases(row, ["CustomerName", "Name", "ParentName"]) ?? undefined,
   address: findValueByAliases(row, ["Address", "CustomerAddress", "AddressLine1"]) ?? undefined,
   parent_id: findValueByAliases(row, ["ParentId", "ParentID", "Parent_Id"]) ?? undefined,
@@ -111,7 +113,16 @@ export function FileIngestionPage() {
 
   const handleRowSelect = async (row: Record<string, unknown>, rowIndex: number) => {
     const criteria = buildRelatedSearchPayload(row);
+    const extractedValues = {
+      master_id: findValueByAliases(row, ["MasterId", "Master_ID", "MasterID"]),
+      company: findValueByAliases(row, ["CustomerName", "Company", "CompanyName", "Name"]),
+      name: findValueByAliases(row, ["CustomerName", "Name", "ParentName"]),
+      address: findValueByAliases(row, ["Address", "CustomerAddress", "AddressLine1"]),
+      parent_id: findValueByAliases(row, ["ParentId", "ParentID", "Parent_Id"]),
+    };
     const criteriaSummary = [
+      criteria.master_id ? `MasterId: ${criteria.master_id}` : null,
+      criteria.company ? `Company: ${criteria.company}` : null,
       criteria.name ? `Name: ${criteria.name}` : null,
       criteria.address ? `Address: ${criteria.address}` : null,
       criteria.parent_id ? `ParentId: ${criteria.parent_id}` : null,
@@ -122,14 +133,20 @@ export function FileIngestionPage() {
     setSelectedRowIndex(rowIndex);
     setSelectedSearchSummary(criteriaSummary);
 
-    if (!criteria.name && !criteria.address && !criteria.parent_id) {
+    if (!criteria.master_id && !criteria.company && !criteria.address && !criteria.parent_id) {
       setRelatedTables([]);
-      setMessage("The selected row does not contain name, address, or parent ID values for related lookup.");
+      setMessage("The selected row does not contain MasterId, company, address, or parent ID values for related lookup.");
       return;
     }
 
     setLoadingRelated(true);
     try {
+      console.group("related-search row selection");
+      console.log("selected row index", rowIndex);
+      console.log("selected row", row);
+      console.log("extracted values", extractedValues);
+      console.log("related-search payload", criteria);
+      console.groupEnd();
       const nextTables = usingDemoData
         ? getDemoRelatedTables(findValueByAliases(row, ["MasterId", "Master_ID"]) ?? "")
         : await searchRelatedSqlServerRows(criteria);
@@ -148,7 +165,7 @@ export function FileIngestionPage() {
   const previewRows = preview?.rows ?? [];
   const rowsWithLookupData = previewRows.filter((row) => {
     const criteria = buildRelatedSearchPayload(row);
-    return Boolean(criteria.name || criteria.address || criteria.parent_id);
+    return Boolean(criteria.master_id || criteria.company || criteria.address || criteria.parent_id);
   }).length;
   const selectedRow = selectedRowIndex !== null ? previewRows[selectedRowIndex] : null;
   const visiblePreviewCount = previewRows.length;
@@ -183,7 +200,7 @@ export function FileIngestionPage() {
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">Master File Preview</h2>
-              <p className="text-sm text-slate-500">Review the scanned file and select a row to load related SQL Server tables by name, address, and parent ID.</p>
+              <p className="text-sm text-slate-500">Review the scanned file and select a row to load four related SQL Server tables by MasterId, company, address, and parent ID.</p>
             </div>
           </div>
           {message && <div className="mb-4 rounded-2xl bg-brand-50 px-4 py-3 text-sm text-brand-800">{message}</div>}
@@ -229,7 +246,7 @@ export function FileIngestionPage() {
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900">Master File Rows</h3>
                     <p className="text-sm text-slate-500">
-                      Showing rows {pageStartRow}-{pageEndRow} of {preview.row_count}. Click a row to search related SQL Server tables by name, address, and parent ID.
+                      Showing rows {pageStartRow}-{pageEndRow} of {preview.row_count}. Click a row to search the four related SQL Server tables by MasterId, company, address, and parent ID.
                     </p>
                   </div>
                   {selectedRow && <StatusBadge status="success" />}
@@ -273,7 +290,7 @@ export function FileIngestionPage() {
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold text-slate-900">Related SQL Server Tables</h3>
-              <p className="text-sm text-slate-500">Detail tables are loaded from the configured SQL Server objects using the selected name, address, or parent ID values.</p>
+              <p className="text-sm text-slate-500">Each table below uses a different lookup: MasterId, company, address, and ParentId against a MasterId column.</p>
             </div>
             {selectedSearchSummary && <div className="rounded-xl bg-brand-50 px-3 py-2 text-sm font-medium text-brand-800">{selectedSearchSummary}</div>}
           </div>
