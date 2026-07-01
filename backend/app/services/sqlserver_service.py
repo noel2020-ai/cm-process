@@ -90,13 +90,13 @@ class SqlServerService:
             raise ValueError("At least one search criterion is required")
 
         results: list[SqlServerRelatedTableResult] = []
+        schema_name, table_name = self._parse_table_ref(settings.sqlserver_lookup_table)
         master_id_key = validate_sql_identifier(settings.sqlserver_master_id_column)
         company_key = validate_sql_identifier(settings.sqlserver_company_column)
         address_key = validate_sql_identifier(settings.sqlserver_address_column)
 
         with self._engine().connect() as connection:
             if "master_id" in criteria:
-                schema_name, table_name = self._parse_table_ref(settings.sqlserver_master_id_table)
                 query = text(
                     f"SELECT TOP {int(request.limit)} * FROM [{schema_name}].[{table_name}] WHERE [{master_id_key}] = :master_id"
                 )
@@ -110,7 +110,6 @@ class SqlServerService:
 
             company_value = criteria.get("company") or criteria.get("name")
             if company_value:
-                schema_name, table_name = self._parse_table_ref(settings.sqlserver_company_table)
                 query = text(
                     f"SELECT TOP {int(request.limit)} * FROM [{schema_name}].[{table_name}] WHERE [{company_key}] LIKE :company"
                 )
@@ -123,7 +122,6 @@ class SqlServerService:
                 )
 
             if "address" in criteria:
-                schema_name, table_name = self._parse_table_ref(settings.sqlserver_address_table)
                 query = text(
                     f"SELECT TOP {int(request.limit)} * FROM [{schema_name}].[{table_name}] WHERE [{address_key}] LIKE :address"
                 )
@@ -136,7 +134,6 @@ class SqlServerService:
                 )
 
             if "parent_id" in criteria:
-                schema_name, table_name = self._parse_table_ref(settings.sqlserver_parent_table)
                 query = text(
                     f"SELECT TOP {int(request.limit)} * FROM [{schema_name}].[{table_name}] WHERE [{master_id_key}] = :parent_id"
                 )
