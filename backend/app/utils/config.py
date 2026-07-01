@@ -9,7 +9,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        enable_decoding=False,
+    )
 
     app_env: str = "development"
     app_name: str = "Operations Data Dashboard"
@@ -22,13 +27,16 @@ class Settings(BaseSettings):
     postgres_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/operations_dashboard"
     postgres_schema: str = "public"
     sqlserver_host: str = "localhost"
-    sqlserver_port: int = 1433
     sqlserver_database: str = "source_db"
     sqlserver_driver: str = "ODBC Driver 18 for SQL Server"
     sqlserver_trusted_connection: bool = True
     sqlserver_username: str = ""
     sqlserver_password: str = ""
     sqlserver_master_id_column: str = "MasterId"
+    sqlserver_company_column: str = "Company"
+    sqlserver_address_column: str = "Address"
+    sqlserver_parent_id_column: str = "ParentId"
+    sqlserver_lookup_table: str = "dbo.master_lookup"
     sqlserver_related_tables: list[str] = Field(default_factory=lambda: ["dbo.related_table_one", "dbo.related_table_two", "dbo.related_table_three"])
     google_search_api_key: str = ""
     google_search_engine_id: str = ""
