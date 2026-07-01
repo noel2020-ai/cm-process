@@ -59,6 +59,8 @@ def search_related_records(request: SqlServerRelatedSearchRequest) -> ApiRespons
                 detail={
                     "message": "At least one search criterion is required",
                     "received_payload": {
+                        "master_id": request.master_id,
+                        "company": request.company,
                         "name": request.name,
                         "address": request.address,
                         "parent_id": request.parent_id,
@@ -78,6 +80,8 @@ def search_related_records(request: SqlServerRelatedSearchRequest) -> ApiRespons
             detail={
                 "message": str(exc),
                 "received_payload": {
+                    "master_id": request.master_id,
+                    "company": request.company,
                     "name": request.name,
                     "address": request.address,
                     "parent_id": request.parent_id,
