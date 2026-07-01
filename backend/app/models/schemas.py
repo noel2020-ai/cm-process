@@ -90,6 +90,8 @@ class SqlServerRelatedTableResult(BaseModel):
 
 
 class SqlServerRelatedSearchRequest(BaseModel):
+    master_id: str | None = None
+    company: str | None = None
     name: str | None = None
     address: str | None = None
     parent_id: str | None = None
@@ -97,6 +99,8 @@ class SqlServerRelatedSearchRequest(BaseModel):
 
     def normalized_criteria(self) -> dict[str, str]:
         values = {
+            "master_id": (self.master_id or "").strip(),
+            "company": (self.company or "").strip(),
             "name": (self.name or "").strip(),
             "address": (self.address or "").strip(),
             "parent_id": (self.parent_id or "").strip(),
