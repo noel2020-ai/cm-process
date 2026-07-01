@@ -85,34 +85,62 @@ class SqlServerService:
         return results
 
     def search_related_records(self, request: SqlServerRelatedSearchRequest) -> list[SqlServerRelatedTableResult]:
-        results: list[SqlServerRelatedTableResult] = []
-        filters: list[str] = []
-        parameters: dict[str, str] = {}
         criteria = request.normalized_criteria()
-
-        if "name" in criteria:
-            name_key = validate_sql_identifier(settings.sqlserver_name_column)
-            filters.append(f"[{name_key}] LIKE :name")
-            parameters["name"] = f"%{criteria['name']}%"
-        if "address" in criteria:
-            address_key = validate_sql_identifier(settings.sqlserver_address_column)
-            filters.append(f"[{address_key}] LIKE :address")
-            parameters["address"] = f"%{criteria['address']}%"
-        if "parent_id" in criteria:
-            parent_key = validate_sql_identifier(settings.sqlserver_parent_id_column)
-            filters.append(f"[{parent_key}] = :parent_id")
-            parameters["parent_id"] = criteria["parent_id"]
-
-        if not filters:
+        if not criteria:
             raise ValueError("At least one search criterion is required")
-        where_clause = " OR ".join(filters)
+
+        results: list[SqlServerRelatedTableResult] = []
+        master_id_key = validate_sql_identifier(settings.sqlserver_master_id_column)
+        company_key = validate_sql_identifier(settings.sqlserver_company_column)
+        address_key = validate_sql_identifier(settings.sqlserver_address_column)
+
         with self._engine().connect() as connection:
-            for table_ref in settings.sqlserver_related_tables[:3]:
-                schema_name, table_name = self._parse_table_ref(table_ref)
+            if "master_id" in criteria:
+                schema_name, table_name = self._parse_table_ref(settings.sqlserver_master_id_table)
                 query = text(
-                    f"SELECT TOP {int(request.limit)} * FROM [{schema_name}].[{table_name}] WHERE {where_clause}"
+                    f"SELECT TOP {int(request.limit)} * FROM [{schema_name}].[{table_name}] WHERE [{master_id_key}] = :master_id"
                 )
-                rows = [dict(row._mapping) for row in connection.execute(query, parameters)]
+                rows = [dict(row._mapping) for row in connection.execute(query, {"master_id": criteria["master_id"]})]
+                results.append(
+                    SqlServerRelatedTableResult(
+                        table_name=f"{schema_name}.{table_name}",
+                        rows=rows,
+                    )
+                )
+
+            company_value = criteria.get("company") or criteria.get("name")
+            if company_value:
+                schema_name, table_name = self._parse_table_ref(settings.sqlserver_company_table)
+                query = text(
+                    f"SELECT TOP {int(request.limit)} * FROM [{schema_name}].[{table_name}] WHERE [{company_key}] LIKE :company"
+                )
+                rows = [dict(row._mapping) for row in connection.execute(query, {"company": f"%{company_value}%"})]
+                results.append(
+                    SqlServerRelatedTableResult(
+                        table_name=f"{schema_name}.{table_name}",
+                        rows=rows,
+                    )
+                )
+
+            if "address" in criteria:
+                schema_name, table_name = self._parse_table_ref(settings.sqlserver_address_table)
+                query = text(
+                    f"SELECT TOP {int(request.limit)} * FROM [{schema_name}].[{table_name}] WHERE [{address_key}] LIKE :address"
+                )
+                rows = [dict(row._mapping) for row in connection.execute(query, {"address": f"%{criteria['address']}%"})]
+                results.append(
+                    SqlServerRelatedTableResult(
+                        table_name=f"{schema_name}.{table_name}",
+                        rows=rows,
+                    )
+                )
+
+            if "parent_id" in criteria:
+                schema_name, table_name = self._parse_table_ref(settings.sqlserver_parent_table)
+                query = text(
+                    f"SELECT TOP {int(request.limit)} * FROM [{schema_name}].[{table_name}] WHERE [{master_id_key}] = :parent_id"
+                )
+                rows = [dict(row._mapping) for row in connection.execute(query, {"parent_id": criteria["parent_id"]})]
                 results.append(
                     SqlServerRelatedTableResult(
                         table_name=f"{schema_name}.{table_name}",
