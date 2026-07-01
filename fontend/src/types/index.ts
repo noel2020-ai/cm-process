@@ -18,6 +18,8 @@ export type FilePreview = {
   inferred_types: Record<string, string>;
   rows: Record<string, unknown>[];
   row_count: number;
+  offset: number;
+  limit: number;
   validation_errors: string[];
 };
 
@@ -47,6 +49,15 @@ export type SqlServerConnectionInfo = {
 export type SqlServerRelatedTable = {
   table_name: string;
   rows: Record<string, unknown>[];
+};
+
+export type SqlServerRelatedSearchRequest = {
+  master_id?: string;
+  company?: string;
+  name?: string;
+  address?: string;
+  parent_id?: string;
+  limit?: number;
 };
 
 export type ResearchResult = {
